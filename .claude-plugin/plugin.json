@@ -1,0 +1,82 @@
+{
+  "name": "ringback",
+  "displayName": "Ringback",
+  "version": "0.1.0",
+  "description": "Phones you when Claude Code is blocked waiting for your input",
+  "author": { "name": "mikelord007", "url": "https://github.com/mikelord007" },
+  "repository": "https://github.com/mikelord007/RingBack",
+  "license": "MIT",
+  "keywords": ["notifications", "phone", "twilio", "voice", "hooks"],
+  "userConfig": {
+    "phone_number": {
+      "type": "string",
+      "title": "Your phone number",
+      "description": "E.164 format, e.g. +919876543210",
+      "required": true
+    },
+    "provider": {
+      "type": "string",
+      "title": "Voice provider",
+      "description": "twilio or webhook",
+      "default": "twilio",
+      "required": true
+    },
+    "delay_seconds": {
+      "type": "number",
+      "title": "Delay before calling (seconds)",
+      "description": "How long a prompt must sit unanswered before you get a call",
+      "default": 180,
+      "min": 10,
+      "max": 3600
+    },
+    "cooldown_minutes": {
+      "type": "number",
+      "title": "Cooldown between calls (minutes)",
+      "description": "Minimum gap between calls for the same session",
+      "default": 30,
+      "min": 1
+    },
+    "max_calls_per_day": {
+      "type": "number",
+      "title": "Max calls per day (all sessions)",
+      "description": "Hard cap on total calls placed across all sessions in a rolling 24 hours",
+      "default": 5,
+      "min": 1
+    },
+    "quiet_hours": {
+      "type": "string",
+      "title": "Quiet hours (local time)",
+      "description": "No calls during this window, e.g. 23:00-07:00. Leave empty to disable.",
+      "default": ""
+    },
+    "events": {
+      "type": "string",
+      "title": "Events that trigger a call",
+      "description": "Comma-separated: permission_prompt, idle_prompt, agent_needs_input",
+      "default": "permission_prompt,idle_prompt,agent_needs_input"
+    },
+    "twilio_account_sid": {
+      "type": "string",
+      "title": "Twilio Account SID",
+      "description": "Required if provider=twilio",
+      "sensitive": true
+    },
+    "twilio_auth_token": {
+      "type": "string",
+      "title": "Twilio Auth Token",
+      "description": "Required if provider=twilio",
+      "sensitive": true
+    },
+    "twilio_from_number": {
+      "type": "string",
+      "title": "Twilio caller number",
+      "description": "Your Twilio phone number in E.164 format. Required if provider=twilio"
+    },
+    "webhook_url": {
+      "type": "string",
+      "title": "Webhook URL",
+      "description": "Required if provider=webhook. Receives a JSON POST with call details.",
+      "sensitive": true
+    }
+  }
+}

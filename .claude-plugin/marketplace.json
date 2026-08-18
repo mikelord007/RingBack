@@ -1,0 +1,8 @@
+{
+  "name": "ringback-marketplace",
+  "description": "Single-plugin marketplace for ringback, a Claude Code plugin that phones you when a session needs your input",
+  "owner": { "name": "mikelord007" },
+  "plugins": [
+    { "name": "ringback", "source": "./", "description": "Phones you when Claude Code is blocked waiting for your input" }
+  ]
+}
