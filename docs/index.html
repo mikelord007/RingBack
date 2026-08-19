@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ringback — Claude Code calls you when it's stuck</title>
+<meta name="description" content="Ringback is a Claude Code plugin that phones you when a session is stuck on a permission prompt or sitting idle. Twilio or any webhook voice provider.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2310141A'/%3E%3Cpath d='M30 34c0-3 2-5 5-5h6c2 0 4 1 5 3l3 8c1 2 0 4-1 5l-5 4c3 8 9 14 17 17l4-5c1-1 3-2 5-1l8 3c2 1 3 3 3 5v6c0 3-2 5-5 5C50 79 21 50 21 34' fill='none' stroke='%23FFA23C' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#10141A;
+    --ink-raised:#1A2029;
+    --ink-raised-2:#222A35;
+    --text-hi:#F3EFE4;
+    --text-mid:#A9B0BC;
+    --text-low:#6C7684;
+    --amber:#FFA23C;
+    --green:#35C46B;
+    --red:#E85B4F;
+    --line:#2A313C;
+    --serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    --sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text-hi);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  img,svg{ display:block; max-width:100%; }
+  a{ color:inherit; }
+  code, pre { font-family:var(--mono); }
+
+  .wrap{ max-width:1080px; margin:0 auto; padding-left:clamp(20px,5vw,48px); padding-right:clamp(20px,5vw,48px); }
+
+  /* ---------- nav ---------- */
+  .nav{ position:sticky; top:0; z-index:40; backdrop-filter:blur(10px); background:rgba(16,20,26,.82); border-bottom:1px solid var(--line); }
+  .nav-row{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
+  .brand{ display:flex; align-items:center; gap:10px; font-family:var(--mono); font-weight:600; letter-spacing:.02em; text-decoration:none; font-size:15px; }
+  .brand-dot{ width:9px; height:9px; border-radius:50%; background:var(--amber); box-shadow:0 0 0 0 rgba(255,162,60,.6); animation:pulse-dot 2.4s ease-in-out infinite; }
+  .nav-links{ display:flex; align-items:center; gap:22px; font-size:13.5px; }
+  .nav-links a{ text-decoration:none; color:var(--text-mid); transition:color .15s ease; }
+  .nav-links a:hover{ color:var(--text-hi); }
+  .nav-status{ display:flex; align-items:center; gap:7px; color:var(--text-low); font-family:var(--mono); font-size:12px; }
+  .nav-status .brand-dot{ width:7px; height:7px; }
+  .gh-link{ display:flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid var(--line); border-radius:8px; color:var(--text-hi) !important; font-size:13px; }
+  .gh-link:hover{ border-color:var(--text-low); }
+
+  @keyframes pulse-dot{
+    0%,100%{ box-shadow:0 0 0 0 rgba(255,162,60,.55); }
+    50%{ box-shadow:0 0 0 6px rgba(255,162,60,0); }
+  }
+
+  /* ---------- hero ---------- */
+  .hero{ padding:clamp(52px,9vw,104px) 0 clamp(40px,7vw,72px); }
+  .hero-grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(32px,5vw,64px); align-items:center; }
+  @media (max-width:880px){ .hero-grid{ grid-template-columns:1fr; } .hero-call{ order:-1; margin:0 auto; } }
+
+  .eyebrow{ font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:12px; color:var(--amber); margin:0 0 18px; }
+  .headline{ font-family:var(--sans); font-weight:700; font-size:clamp(34px,5.4vw,56px); line-height:1.04; letter-spacing:-.01em; margin:0 0 22px; }
+  .headline em{ font-family:var(--serif); font-style:italic; font-weight:400; color:var(--amber); }
+  .sub{ font-size:17px; line-height:1.65; color:var(--text-mid); max-width:46ch; margin:0 0 30px; }
+  .sub .cursor{ display:inline-block; width:9px; height:1.05em; background:var(--amber); vertical-align:-2px; animation:blink 1.1s steps(1) infinite; margin-left:2px; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .cta-row{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:18px; }
+  .btn{ font-family:var(--sans); font-weight:600; font-size:14.5px; padding:13px 20px; border-radius:9px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; border:1px solid transparent; cursor:pointer; }
+  .btn-primary{ background:var(--amber); color:#1A1002; }
+  .btn-primary:hover{ background:#ffb35c; }
+  .btn-ghost{ background:transparent; color:var(--text-hi); border-color:var(--line); }
+  .btn-ghost:hover{ border-color:var(--text-low); }
+
+  .install-snip{ background:var(--ink-raised); border:1px solid var(--line); border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:14px; max-width:520px; }
+  .install-snip code{ font-size:12.8px; color:var(--text-hi); line-height:1.7; white-space:pre; overflow-x:auto; }
+  .copy-btn{ flex:0 0 auto; background:var(--ink-raised-2); border:1px solid var(--line); color:var(--text-mid); font-family:var(--mono); font-size:11.5px; padding:7px 10px; border-radius:6px; cursor:pointer; }
+  .copy-btn:hover{ color:var(--text-hi); border-color:var(--text-low); }
+
+  /* ---------- hero call widget (signature element) ---------- */
+  .hero-call{ position:relative; width:280px; height:340px; border-radius:34px; background:linear-gradient(180deg,#1C232D,#141922); border:1px solid var(--line); box-shadow:0 30px 70px -20px rgba(0,0,0,.6); padding:26px 22px; display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .hero-call::before{ content:''; position:absolute; top:14px; left:50%; transform:translateX(-50%); width:52px; height:5px; border-radius:4px; background:#2c3542; }
+  .call-kicker{ font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--text-low); text-transform:uppercase; margin-top:26px; }
+  .call-project{ font-size:26px; font-weight:700; margin:10px 0 2px; }
+  .call-idle{ font-family:var(--mono); font-size:13px; color:var(--text-mid); margin-bottom:6px; }
+  .call-idle b{ color:var(--amber); font-weight:600; }
+
+  .sonar{ position:relative; width:104px; height:104px; margin:14px 0; display:flex; align-items:center; justify-content:center; }
+  .sonar .ring{ position:absolute; inset:0; border-radius:50%; border:1.5px solid var(--amber); opacity:0; animation:sonar 2.6s ease-out infinite; }
+  .sonar .ring:nth-child(2){ animation-delay:.65s; }
+  .sonar .ring:nth-child(3){ animation-delay:1.3s; }
+  .sonar .core{ position:relative; z-index:2; width:52px; height:52px; border-radius:50%; background:var(--ink-raised-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:var(--mono); color:var(--amber); font-size:18px; }
+  @keyframes sonar{ 0%{ transform:scale(.5); opacity:.55; } 100%{ transform:scale(1.9); opacity:0; } }
+
+  .call-actions{ display:flex; gap:14px; margin-top:auto; padding-top:18px; width:100%; justify-content:center; }
+  .call-pill{ font-family:var(--mono); font-size:11.5px; padding:9px 16px; border-radius:20px; border:1px solid var(--line); color:var(--text-low); }
+  .call-pill.answer{ color:var(--green); border-color:rgba(53,196,107,.35); }
+  .call-pill.decline{ color:var(--red); border-color:rgba(232,91,79,.35); }
+
+  @media (prefers-reduced-motion:reduce){ .sonar .ring, .brand-dot, .cursor{ animation:none !important; } .sonar .ring{ opacity:.25; transform:scale(1.1); } }
+
+  /* ---------- generic section chrome ---------- */
+  section{ padding:clamp(56px,8vw,96px) 0; border-top:1px solid var(--line); }
+  .section-head{ max-width:640px; margin-bottom:clamp(32px,5vw,52px); }
+  .kicker{ font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:12px; color:var(--amber); margin:0 0 14px; }
+  .h2{ font-family:var(--sans); font-weight:700; font-size:clamp(26px,3.4vw,36px); line-height:1.15; margin:0 0 14px; letter-spacing:-.01em; }
+  .lede{ color:var(--text-mid); font-size:16px; line-height:1.7; margin:0; }
+
+  .reveal{ opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal.is-visible{ opacity:1; transform:none; }
+
+  /* ---------- why (editorial) ---------- */
+  .why-quote{ font-family:var(--serif); font-style:italic; font-size:clamp(22px,3vw,30px); line-height:1.5; color:var(--text-hi); max-width:52ch; margin:0 0 20px; }
+  .why-quote span{ color:var(--amber); }
+  .why-p{ color:var(--text-mid); font-size:16px; line-height:1.75; max-width:60ch; }
+
+  /* ---------- how it works: ring log ---------- */
+  .ringlog{ border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--ink-raised); }
+  .ring-row{ display:grid; grid-template-columns:104px 1fr 88px; gap:18px; align-items:start; padding:20px 22px; border-bottom:1px solid var(--line); }
+  .ring-row:last-child{ border-bottom:none; }
+  .ring-tag{ font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--amber); text-transform:uppercase; padding-top:2px; }
+  .ring-tag.cancel{ color:var(--red); }
+  .ring-body h4{ margin:0 0 5px; font-size:15px; font-weight:600; }
+  .ring-body p{ margin:0; color:var(--text-mid); font-size:14px; line-height:1.6; }
+  .ring-body code{ background:var(--ink-raised-2); padding:1px 6px; border-radius:4px; font-size:12.5px; color:var(--text-hi); }
+  .ring-time{ font-family:var(--mono); font-size:12px; color:var(--text-low); text-align:right; padding-top:2px; }
+
+  .cancel-note{ display:flex; gap:14px; align-items:flex-start; margin-top:18px; padding:16px 20px; border:1px dashed var(--line); border-radius:12px; color:var(--text-mid); font-size:14px; line-height:1.65; }
+  .cancel-note b{ color:var(--red); font-weight:600; }
+
+  /* ---------- control panel ---------- */
+  .dial-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  @media (max-width:900px){ .dial-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:520px){ .dial-grid{ grid-template-columns:1fr; } }
+  .dial-card{ background:var(--ink-raised); border:1px solid var(--line); border-radius:14px; padding:22px 20px; }
+  .dial-value{ font-family:var(--mono); font-weight:600; font-size:26px; color:var(--amber); margin-bottom:8px; }
+  .dial-label{ font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-low); margin-bottom:10px; }
+  .dial-desc{ font-size:13.5px; color:var(--text-mid); line-height:1.6; margin:0; }
+
+  /* ---------- providers ---------- */
+  .jack-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:760px){ .jack-grid{ grid-template-columns:1fr; } }
+  .jack-card{ background:var(--ink-raised); border:1px solid var(--line); border-radius:14px; padding:26px; }
+  .jack-title{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:17px; margin-bottom:12px; }
+  .jack-swatch{ width:10px; height:10px; border-radius:50%; }
+  .jack-card ul{ margin:0; padding-left:18px; color:var(--text-mid); font-size:14px; line-height:1.75; }
+  .jack-card li::marker{ color:var(--text-low); }
+
+  .codeblock{ background:#0C0F14; border:1px solid var(--line); border-radius:12px; padding:18px 20px; overflow-x:auto; margin-top:22px; position:relative; }
+  .codeblock pre{ margin:0; font-size:12.8px; line-height:1.7; color:#D8DEE9; }
+  .codeblock .copy-btn{ position:absolute; top:12px; right:12px; }
+  .tok-key{ color:#7EC8E3; } .tok-str{ color:#B7D89A; } .tok-com{ color:var(--text-low); }
+
+  /* ---------- config table ---------- */
+  .table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:14px; }
+  table{ width:100%; border-collapse:collapse; min-width:640px; }
+  th,td{ text-align:left; padding:14px 18px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-low); background:var(--ink-raised); }
+  tr:last-child td{ border-bottom:none; }
+  td.field{ font-family:var(--mono); color:var(--amber); white-space:nowrap; }
+  td.purpose{ color:var(--text-hi); }
+  td.default{ color:var(--text-mid); font-family:var(--mono); white-space:nowrap; }
+
+  /* ---------- setup steps ---------- */
+  .setup-list{ counter-reset:step; display:flex; flex-direction:column; gap:0; }
+  .setup-step{ counter-increment:step; display:grid; grid-template-columns:52px 1fr; gap:20px; padding:26px 0; border-bottom:1px solid var(--line); }
+  .setup-step:last-child{ border-bottom:none; }
+  .setup-num{ font-family:var(--mono); font-size:13px; color:var(--amber); }
+  .setup-num::before{ content:"ring " counter(step); }
+  .setup-step h4{ margin:0 0 8px; font-size:16.5px; font-weight:700; }
+  .setup-step p{ margin:0 0 12px; color:var(--text-mid); font-size:14.5px; line-height:1.7; max-width:64ch; }
+  .setup-step p:last-child{ margin-bottom:0; }
+  .setup-step a{ color:var(--amber); }
+
+  .callout{ margin-top:18px; padding:16px 18px; border-left:3px solid var(--amber); background:var(--ink-raised); border-radius:0 10px 10px 0; font-size:13.5px; color:var(--text-mid); line-height:1.7; }
+  .callout b{ color:var(--text-hi); }
+  .callout.warn{ border-left-color:var(--red); }
+
+  /* ---------- troubleshooting log ---------- */
+  .log-panel{ background:#0C0F14; border:1px solid var(--line); border-radius:14px; padding:6px; }
+  .log-line{ display:grid; grid-template-columns:minmax(220px,320px) 1fr; gap:18px; padding:16px 18px; border-bottom:1px solid #1A1F27; align-items:baseline; }
+  .log-line:last-child{ border-bottom:none; }
+  .log-line code{ font-size:12.3px; color:var(--green); }
+  .log-line code.err{ color:var(--red); }
+  .log-line span{ font-size:13.5px; color:var(--text-mid); line-height:1.6; }
+
+  /* ---------- privacy list ---------- */
+  .priv-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px 32px; }
+  @media (max-width:700px){ .priv-grid{ grid-template-columns:1fr; } }
+  .priv-item{ display:flex; gap:12px; font-size:14.5px; color:var(--text-mid); line-height:1.65; }
+  .priv-item .mark{ color:var(--green); flex:0 0 auto; }
+
+  /* ---------- footer ---------- */
+  footer{ border-top:1px solid var(--line); padding:48px 0 60px; }
+  .foot-grid{ display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:40px; margin-bottom:40px; }
+  @media (max-width:760px){ .foot-grid{ grid-template-columns:1fr; gap:28px; } }
+  .foot-grid h5{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-low); margin:0 0 14px; }
+  .foot-grid p, .foot-grid li{ color:var(--text-mid); font-size:13.5px; line-height:1.7; }
+  .foot-grid ul{ margin:0; padding-left:16px; }
+  .foot-bottom{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top:24px; border-top:1px solid var(--line); font-size:12.5px; color:var(--text-low); font-family:var(--mono); }
+  .foot-bottom a{ text-decoration:none; }
+  .foot-bottom a:hover{ color:var(--text-hi); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="#top">
+      <span class="brand-dot" aria-hidden="true"></span>
+      ringback
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#controls">Anti-spam</a>
+      <a href="#setup">Set up</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+      <span class="nav-status" aria-hidden="true"><span class="brand-dot"></span>watching</span>
+      <a class="gh-link" href="https://github.com/mikelord007/RingBack" target="_blank" rel="noopener">
+        GitHub ↗
+      </a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">A Claude Code plugin</p>
+      <h1 class="headline">Claude Code goes quiet.<br><em>Ringback</em> calls.</h1>
+      <p class="sub">When a session sits blocked on a permission prompt, or idle waiting for your next message, Ringback watches. Step away too long and it phones you. Come back first, and it never dials<span class="cursor" aria-hidden="true"></span></p>
+      <div class="cta-row">
+        <a class="btn btn-ghost" href="#setup">See setup ↓</a>
+        <a class="btn btn-primary" href="#how">How it works</a>
+      </div>
+      <div class="install-snip">
+        <code id="install-code">claude plugin marketplace add mikelord007/RingBack
+claude plugin install ringback@ringback-marketplace</code>
+        <button class="copy-btn" data-copy-target="install-code">copy</button>
+      </div>
+    </div>
+
+    <div class="hero-call" aria-hidden="true">
+      <p class="call-kicker">Ringback · incoming</p>
+      <p class="call-project">your-project</p>
+      <p class="call-idle">idle <b>03:02</b></p>
+      <div class="sonar">
+        <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+        <span class="core">_</span>
+      </div>
+      <div class="call-actions">
+        <span class="call-pill decline">decline</span>
+        <span class="call-pill answer">answer</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="why">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="why-quote">A blocked session is <span>silent</span>. You only find out when you happen to check back.</p>
+      <p class="why-p">Claude Code sessions can sit waiting on a permission prompt, or idle for your next message, for a long time once you've stepped away from the terminal. Ringback closes that gap with a phone call — through Twilio or any webhook-compatible voice provider you already run.</p>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="kicker">How it works</p>
+      <h2 class="h2">One notification, six steps, one phone call — or none</h2>
+      <p class="lede">Every call starts as a <code>Notification</code> hook and passes through the same pipeline before it's ever placed.</p>
+    </div>
+
+    <div class="ringlog reveal">
+      <div class="ring-row">
+        <div class="ring-tag">ring 1</div>
+        <div class="ring-body"><h4>Notification fires</h4><p>Claude Code emits <code>permission_prompt</code>, <code>idle_prompt</code>, or <code>agent_needs_input</code>.</p></div>
+        <div class="ring-time">t+0s</div>
+      </div>
+      <div class="ring-row">
+        <div class="ring-tag">ring 2</div>
+        <div class="ring-body"><h4>schedule-call.mjs checks in</h4><p>Skips if the event isn't in your configured <code>events</code> list, or if a call is already pending for this session.</p></div>
+        <div class="ring-time">t+0s</div>
+      </div>
+      <div class="ring-row">
+        <div class="ring-tag">ring 3</div>
+        <div class="ring-body"><h4>Pending file written, clock starts</h4><p>Writes <code>pending/&lt;session_id&gt;.json</code> and sleeps for <code>delay_seconds</code>.</p></div>
+        <div class="ring-time">t+0s</div>
+      </div>
+      <div class="ring-row">
+        <div class="ring-tag">ring 4</div>
+        <div class="ring-body"><h4>Wakes up, checks again</h4><p>If the pending file is gone, you already came back — exit quietly. If it's still there, the anti-spam guard runs a second time.</p></div>
+        <div class="ring-time">t+180s</div>
+      </div>
+      <div class="ring-row">
+        <div class="ring-tag">ring 5</div>
+        <div class="ring-body"><h4>The call goes out</h4><p><code>provider.placeCall()</code> — Twilio or your webhook — dials your configured <code>phone_number</code>.</p></div>
+        <div class="ring-time">t+180s</div>
+      </div>
+      <div class="ring-row">
+        <div class="ring-tag">ring 6</div>
+        <div class="ring-body"><h4>Logged and cleared</h4><p>Result appended to <code>call-ledger.jsonl</code>, pending file deleted either way.</p></div>
+        <div class="ring-time">t+180s</div>
+      </div>
+    </div>
+
+    <div class="cancel-note reveal">
+      <span><b>Any real activity cancels it.</b> Submitting a prompt, the turn ending, or the session closing all delete the pending file before the timer runs out — <code>UserPromptSubmit</code>, <code>Stop</code>, and <code>SessionEnd</code> each call <code>cancel-call.mjs</code>. One exception: <code>Stop</code> leaves a pending <code>idle_prompt</code> call in place, since a turn can end at the exact moment an idle call gets scheduled for it — only genuine activity (a new prompt, or the session ending) cancels that one.</span>
+    </div>
+  </div>
+</section>
+
+<section id="controls">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="kicker">Anti-spam model</p>
+      <h2 class="h2">Never silent, never spammy</h2>
+      <p class="lede">Every call passes four gates, in order, checked once when it's scheduled and again right before it dials.</p>
+    </div>
+    <div class="dial-grid reveal">
+      <div class="dial-card">
+        <div class="dial-value">180s</div>
+        <div class="dial-label">Delay before calling</div>
+        <p class="dial-desc">A prompt has to sit unanswered this long before Ringback pays attention. Most prompts get answered well before that.</p>
+      </div>
+      <div class="dial-card">
+        <div class="dial-value">30min</div>
+        <div class="dial-label">Cooldown</div>
+        <p class="dial-desc">The same session won't call you again sooner than this, even if it keeps sitting blocked.</p>
+      </div>
+      <div class="dial-card">
+        <div class="dial-value">5/day</div>
+        <div class="dial-label">Daily cap</div>
+        <p class="dial-desc">An upper bound across every session you run, so a bad afternoon can't turn into a dozen calls.</p>
+      </div>
+      <div class="dial-card">
+        <div class="dial-value">off</div>
+        <div class="dial-label">Quiet hours</div>
+        <p class="dial-desc">Optional window, e.g. <code style="background:var(--ink-raised-2);padding:1px 6px;border-radius:4px;">23:00-07:00</code>, where no calls go out at all.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="providers">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="kicker">Pick a line</p>
+      <h2 class="h2">Twilio, or bring your own voice provider</h2>
+      <p class="lede">Ringback ships with two ways to actually place the call.</p>
+    </div>
+    <div class="jack-grid reveal">
+      <div class="jack-card">
+        <div class="jack-title"><span class="jack-swatch" style="background:var(--amber);"></span>Twilio</div>
+        <ul>
+          <li>Set <code>provider</code> to <code>twilio</code></li>
+          <li>Needs Account SID, Auth Token, and a Twilio-owned <code>from</code> number</li>
+          <li>Trial accounts can only call <b>verified</b> numbers — verify your own <code>phone_number</code> in the Twilio console first</li>
+          <li>Trial accounts also play Twilio's own upgrade disclaimer before Ringback's message — that's Twilio, not Ringback</li>
+        </ul>
+      </div>
+      <div class="jack-card">
+        <div class="jack-title"><span class="jack-swatch" style="background:var(--green);"></span>Webhook</div>
+        <ul>
+          <li>Set <code>provider</code> to <code>webhook</code> and a <code>webhook_url</code></li>
+          <li>Wire in Vapi, Bland, Telnyx, a self-hosted service, an n8n workflow — anything that accepts a POST</li>
+          <li>10 second timeout; non-2xx responses count as a failed call</li>
+          <li>Zero code changes to the plugin itself</li>
+        </ul>
+      </div>
+    </div>
+    <div class="codeblock reveal">
+      <button class="copy-btn" data-copy-target="payload-code">copy</button>
+      <pre id="payload-code">{
+  <span class="tok-key">"to"</span>: <span class="tok-str">"+919876543210"</span>,
+  <span class="tok-key">"projectName"</span>: <span class="tok-str">"my-app"</span>,
+  <span class="tok-key">"cwd"</span>: <span class="tok-str">"/home/user/projects/my-app"</span>,
+  <span class="tok-key">"sessionId"</span>: <span class="tok-str">"a1b2c3d4-..."</span>,
+  <span class="tok-key">"notificationType"</span>: <span class="tok-str">"permission_prompt"</span>,
+  <span class="tok-key">"message"</span>: <span class="tok-str">"Claude wants to run a shell command that writes to disk"</span>,
+  <span class="tok-key">"timestamp"</span>: <span class="tok-str">"2026-08-18T14:32:07.123Z"</span> <span class="tok-com">// set after the delay + final guard check</span>
+}</pre>
+    </div>
+  </div>
+</section>
+
+<section id="config">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="kicker">Call settings</p>
+      <h2 class="h2">Every field, in one place</h2>
+      <p class="lede">Claude Code prompts you for each of these when you enable the plugin — no manual JSON editing.</p>
+    </div>
+    <div class="table-wrap reveal">
+      <table>
+        <thead><tr><th>Field</th><th>Purpose</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td class="field">phone_number</td><td class="purpose">Your number, E.164 format (e.g. +919876543210)</td><td class="default">required</td></tr>
+          <tr><td class="field">provider</td><td class="purpose">twilio or webhook</td><td class="default">twilio</td></tr>
+          <tr><td class="field">delay_seconds</td><td class="purpose">How long a prompt sits unanswered before you get a call</td><td class="default">180</td></tr>
+          <tr><td class="field">cooldown_minutes</td><td class="purpose">Minimum gap between calls for the same session</td><td class="default">30</td></tr>
+          <tr><td class="field">max_calls_per_day</td><td class="purpose">Cap on calls per day, across all sessions</td><td class="default">5</td></tr>
+          <tr><td class="field">quiet_hours</td><td class="purpose">No calls during this window, e.g. 23:00-07:00; empty disables it</td><td class="default">""</td></tr>
+          <tr><td class="field">events</td><td class="purpose">Comma-separated notification types that trigger a call</td><td class="default">permission_prompt, idle_prompt, agent_needs_input</td></tr>
+          <tr><td class="field">twilio_account_sid</td><td class="purpose">Twilio Account SID (sensitive; required if provider=twilio)</td><td class="default">—</td></tr>
+          <tr><td class="field">twilio_auth_token</td><td class="purpose">Twilio Auth Token (sensitive; required if provider=twilio)</td><td class="default">—</td></tr>
+          <tr><td class="field">twilio_from_number</td><td class="purpose">Your Twilio number, E.164 format (required if provider=twilio)</td><td class="default">—</td></tr>
+          <tr><td class="field">webhook_url</td><td class="purpose">Webhook endpoint (sensitive; required if provider=webhook)</td><td class="default">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="setup">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="kicker">Set up with Claude Code</p>
+      <h2 class="h2">From zero to your first call</h2>
+      <p class="lede">Everything below runs inside Claude Code — no separate dashboard, no manual config files.</p>
+    </div>
+
+    <div class="setup-list reveal">
+      <div class="setup-step">
+        <div class="setup-num"></div>
+        <div>
+          <h4>Add the marketplace and install</h4>
+          <p>Run both commands in a Claude Code session:</p>
+          <div class="codeblock" style="margin-top:0;">
+            <button class="copy-btn" data-copy-target="setup-code-1">copy</button>
+            <pre id="setup-code-1">claude plugin marketplace add mikelord007/RingBack
+claude plugin install ringback@ringback-marketplace</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-num"></div>
+        <div>
+          <h4>Answer the setup prompts</h4>
+          <p>Claude Code walks you through every field in <a href="#config">the settings table above</a> — <code>phone_number</code> and <code>provider</code> are the two that matter first. Everything else has a sane default.</p>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-num"></div>
+        <div>
+          <h4>If you're using Twilio</h4>
+          <p>Sign up at <a href="https://www.twilio.com" target="_blank" rel="noopener">twilio.com</a> and claim a free trial number. On the Console dashboard, copy your <b style="color:var(--text-hi);">Account SID</b> and <b style="color:var(--text-hi);">Auth Token</b> into <code>twilio_account_sid</code> / <code>twilio_auth_token</code>, and put the trial number itself into <code>twilio_from_number</code>.</p>
+          <p>Trial accounts can only call numbers you've <b style="color:var(--text-hi);">verified</b> — verify your own <code>phone_number</code> first under <a href="https://www.twilio.com/docs/voice/quickstart#verify-a-phone-number-you-own" target="_blank" rel="noopener">Verified Caller IDs</a>, or calls to it will fail.</p>
+          <div class="callout warn"><b>Regional note:</b> outbound voice calling is subject to carrier and regulatory constraints by country. In India specifically, DLT/TRAI registration can block or restrict calls to Indian numbers through generic voice providers — confirm your provider actually supports your number's country, or use the webhook provider to route through a local, compliant one instead.</div>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-num"></div>
+        <div>
+          <h4>If you're using your own voice provider</h4>
+          <p>Set <code>provider</code> to <code>webhook</code> and point <code>webhook_url</code> at any endpoint you control. It'll receive the JSON payload shown above with header <code>X-Ringback-Event: call</code> — see the <a href="#providers">providers section</a> for the full contract.</p>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <div class="setup-num"></div>
+        <div>
+          <h4>Confirm it's wired up</h4>
+          <p>Run <code>claude --debug</code> and check that <code>Notification</code>, <code>UserPromptSubmit</code>, <code>Stop</code>, and <code>SessionEnd</code> from <code>hooks/hooks.json</code> show up as registered. Then watch <code>${CLAUDE_PLUGIN_DATA}/ringback.log</code> the next time a session goes idle.</p>
+          <div class="callout">Edited <code>hooks/hooks.json</code> yourself, or updated the plugin? Hook wiring loads once per session — run <code>/reload-plugins</code>, or restart the CLI, for changes to take effect.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="troubleshooting">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="kicker">Troubleshooting</p>
+      <h2 class="h2">Read the log first</h2>
+      <p class="lede">Ringback writes every decision to <code>${CLAUDE_PLUGIN_DATA}/ringback.log</code> — it rotates to <code>.log.1</code> once it passes 1&nbsp;MB.</p>
+    </div>
+    <div class="log-panel reveal">
+      <div class="log-line"><code>schedule: skip ... (not in configured events)</code><span>The notification type isn't in your <code style="background:var(--ink-raised-2);padding:1px 6px;border-radius:4px;">events</code> list, or a call is already pending for this session.</span></div>
+      <div class="log-line"><code class="err">schedule: aborted ... reason=quiet_hours|cooldown|daily_cap</code><span>The anti-spam guard blocked it — check your <a href="#controls">gate settings</a>.</span></div>
+      <div class="log-line"><code class="err">schedule: call FAILED ...</code><span>The provider rejected the call — the error message from Twilio or your webhook follows.</span></div>
+      <div class="log-line"><code>cancel: cancelled session=... trigger=...</code><span>You came back in time. Nothing else to do.</span></div>
+    </div>
+    <div class="callout reveal" style="margin-top:22px;">On Unix-like systems, <code>scripts/schedule-call.mjs</code> and <code>scripts/cancel-call.mjs</code> need their executable bit set: <code>chmod +x scripts/schedule-call.mjs scripts/cancel-call.mjs</code>.</div>
+  </div>
+</section>
+
+<section id="privacy">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="kicker">Privacy &amp; security</p>
+      <h2 class="h2">What leaves your machine</h2>
+      <p class="lede">The only outbound calls this plugin makes are to the provider you configure — Twilio, or your own <code>webhook_url</code>. There's no telemetry.</p>
+    </div>
+    <div class="priv-grid reveal">
+      <div class="priv-item"><span class="mark">●</span>Credentials (<code>twilio_account_sid</code>, <code>twilio_auth_token</code>, <code>webhook_url</code>) are stored via Claude Code's OS keychain, never written to disk in plaintext.</div>
+      <div class="priv-item"><span class="mark">●</span><code>ringback.log</code> never writes provider credentials.</div>
+      <div class="priv-item"><span class="mark">●</span>Provider error bodies are truncated to 500 characters before landing in any log or error message.</div>
+      <div class="priv-item"><span class="mark">●</span>The notification message is capped at 300 characters, both when the call is scheduled and again by the provider before it's sent.</div>
+      <div class="priv-item"><span class="mark">●</span>The call ledger only keeps the last 7 days of entries — older ones are pruned automatically.</div>
+      <div class="priv-item"><span class="mark">●</span>Stale pending files older than 24 hours are cleaned up on session end.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <h5>Extension point</h5>
+        <p>Adding a first-class voice provider takes three changes: a file in <code>scripts/lib/providers/</code> exporting <code>async placeCall(payload, config)</code>, one line in the provider registry, and any new <code>userConfig</code> keys in <code>plugin.json</code> (mark credentials <code>sensitive: true</code>).</p>
+      </div>
+      <div>
+        <h5>Non-goals for v0.1</h5>
+        <ul>
+          <li>No two-way voice response — the call is one-way, and directs you to the Claude app to respond.</li>
+          <li>No SMS/WhatsApp fallback.</li>
+          <li>No bundled MCP server, skill, or agent — hooks and scripts only.</li>
+        </ul>
+      </div>
+      <div>
+        <h5>Links</h5>
+        <ul>
+          <li><a href="https://github.com/mikelord007/RingBack" target="_blank" rel="noopener">Source on GitHub ↗</a></li>
+          <li><a href="https://github.com/mikelord007/RingBack/blob/main/README.md" target="_blank" rel="noopener">Full README ↗</a></li>
+          <li><a href="https://github.com/mikelord007/RingBack/blob/main/LICENSE" target="_blank" rel="noopener">MIT License ↗</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>ringback — phones you when Claude Code is waiting on you</span>
+      <span>MIT licensed · not affiliated with Twilio</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var target = document.getElementById(btn.getAttribute('data-copy-target'));
+      if(!target) return;
+      var text = target.textContent;
+      var done = function(){ var old = btn.textContent; btn.textContent = 'copied'; setTimeout(function(){ btn.textContent = old; }, 1400); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done).catch(function(){});
+      }
+    });
+  });
+
+  var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var reveals = document.querySelectorAll('.reveal');
+  if(prefersReduced || !('IntersectionObserver' in window)){
+    reveals.forEach(function(el){ el.classList.add('is-visible'); });
+  } else {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){ entry.target.classList.add('is-visible'); io.unobserve(entry.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    reveals.forEach(function(el){ io.observe(el); });
+  }
+</script>
+</body>
+</html>
