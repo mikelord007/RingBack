@@ -49,6 +49,7 @@
   img,svg{ display:block; max-width:100%; }
   a{ color:inherit; }
   code, pre { font-family:var(--mono); }
+  code { overflow-wrap:break-word; }
 
   .wrap{ max-width:1080px; margin:0 auto; padding-left:clamp(20px,5vw,48px); padding-right:clamp(20px,5vw,48px); }
 
@@ -76,8 +77,9 @@
   /* ---------- hero ---------- */
   .hero{ padding:clamp(52px,9vw,104px) 0 clamp(40px,7vw,72px); }
   .hero-grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(32px,5vw,64px); align-items:center; }
+  .hero-grid > div{ min-width:0; }
   .hero-grid .hero-call{ justify-self:end; }
-  @media (max-width:880px){ .hero-grid{ grid-template-columns:1fr; gap:44px; } .hero-call{ order:-1; justify-self:center; margin:0 auto; } }
+  @media (max-width:880px){ .hero-grid{ grid-template-columns:1fr; gap:44px; } .hero-grid .hero-call{ order:-1; justify-self:center; margin:0 auto; } }
 
   .eyebrow{ font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:12px; color:var(--amber); margin:0 0 18px; }
   .headline{ font-family:var(--sans); font-weight:700; font-size:clamp(34px,5.4vw,56px); line-height:1.04; letter-spacing:-.01em; margin:0 0 22px; }
@@ -145,6 +147,7 @@
   /* ---------- how it works: ring log ---------- */
   .ringlog{ border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--ink-raised); }
   .ring-row{ display:grid; grid-template-columns:104px 1fr 88px; gap:18px; align-items:start; padding:20px 22px; border-bottom:1px solid var(--line); }
+  .ring-row > *{ min-width:0; }
   .ring-row:last-child{ border-bottom:none; }
   .ring-tag{ font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--amber); text-transform:uppercase; padding-top:2px; }
   .ring-tag.cancel{ color:var(--red); }
@@ -162,6 +165,7 @@
 
   /* ---------- control panel ---------- */
   .dial-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .dial-grid > *{ min-width:0; }
   @media (max-width:900px){ .dial-grid{ grid-template-columns:repeat(2,1fr); } }
   @media (max-width:520px){ .dial-grid{ grid-template-columns:1fr; } }
   .dial-card{ background:var(--ink-raised); border:1px solid var(--line); border-radius:14px; padding:22px 20px; }
@@ -171,6 +175,7 @@
 
   /* ---------- providers ---------- */
   .jack-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .jack-grid > *{ min-width:0; }
   @media (max-width:760px){ .jack-grid{ grid-template-columns:1fr; } }
   .jack-card{ background:var(--ink-raised); border:1px solid var(--line); border-radius:14px; padding:26px; }
   .jack-title{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:17px; margin-bottom:12px; }
@@ -196,6 +201,7 @@
   /* ---------- setup steps ---------- */
   .setup-list{ counter-reset:step; display:flex; flex-direction:column; gap:0; }
   .setup-step{ counter-increment:step; display:grid; grid-template-columns:52px 1fr; gap:20px; padding:26px 0; border-bottom:1px solid var(--line); }
+  .setup-step > *{ min-width:0; }
   .setup-step:last-child{ border-bottom:none; }
   .setup-num{ font-family:var(--mono); font-size:13px; color:var(--amber); }
   .setup-num::before{ content:"ring " counter(step); }
@@ -211,6 +217,7 @@
   /* ---------- troubleshooting log ---------- */
   .log-panel{ background:#0C0F14; border:1px solid var(--line); border-radius:14px; padding:6px; }
   .log-line{ display:grid; grid-template-columns:minmax(220px,320px) 1fr; gap:18px; padding:16px 18px; border-bottom:1px solid #1A1F27; align-items:baseline; }
+  .log-line > *{ min-width:0; }
   .log-line:last-child{ border-bottom:none; }
   .log-line code{ font-size:12.3px; color:var(--green); overflow-wrap:break-word; }
   .log-line code.err{ color:var(--red); }
@@ -219,13 +226,15 @@
 
   /* ---------- privacy list ---------- */
   .priv-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px 32px; }
+  .priv-grid > *{ min-width:0; }
   @media (max-width:700px){ .priv-grid{ grid-template-columns:1fr; } }
-  .priv-item{ display:flex; gap:12px; font-size:14.5px; color:var(--text-mid); line-height:1.65; }
+  .priv-item{ display:flex; flex-wrap:wrap; gap:6px 12px; font-size:14.5px; color:var(--text-mid); line-height:1.65; }
   .priv-item .mark{ color:var(--green); flex:0 0 auto; }
 
   /* ---------- footer ---------- */
   footer{ border-top:1px solid var(--line); padding:48px 0 60px; }
   .foot-grid{ display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:40px; margin-bottom:40px; }
+  .foot-grid > *{ min-width:0; }
   @media (max-width:760px){ .foot-grid{ grid-template-columns:1fr; gap:28px; } }
   .foot-grid h5{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-low); margin:0 0 14px; }
   .foot-grid p, .foot-grid li{ color:var(--text-mid); font-size:13.5px; line-height:1.7; }
