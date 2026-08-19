@@ -5,7 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ringback — Claude Code calls you when it's stuck</title>
 <meta name="description" content="Ringback is a Claude Code plugin that phones you when a session is stuck on a permission prompt or sitting idle. Twilio or any webhook voice provider.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2310141A'/%3E%3Cpath d='M30 34c0-3 2-5 5-5h6c2 0 4 1 5 3l3 8c1 2 0 4-1 5l-5 4c3 8 9 14 17 17l4-5c1-1 3-2 5-1l8 3c2 1 3 3 3 5v6c0 3-2 5-5 5C50 79 21 50 21 34' fill='none' stroke='%23FFA23C' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/ringback-logo-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/ringback-logo-180.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Ringback — Claude Code calls you when it's stuck">
+<meta property="og:description" content="Phones you when a Claude Code session is stuck on a permission prompt or sitting idle. Twilio or any webhook voice provider.">
+<meta property="og:image" content="https://mikelord007.github.io/RingBack/assets/ringback-logo-og.png">
+<meta property="og:url" content="https://mikelord007.github.io/RingBack/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ringback — Claude Code calls you when it's stuck">
+<meta name="twitter:description" content="Phones you when a Claude Code session is stuck on a permission prompt or sitting idle.">
+<meta name="twitter:image" content="https://mikelord007.github.io/RingBack/assets/ringback-logo-og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -46,12 +56,11 @@
   .nav{ position:sticky; top:0; z-index:40; backdrop-filter:blur(10px); background:rgba(16,20,26,.82); border-bottom:1px solid var(--line); }
   .nav-row{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
   .brand{ display:flex; align-items:center; gap:10px; font-family:var(--mono); font-weight:600; letter-spacing:.02em; text-decoration:none; font-size:15px; }
+  .brand-logo{ width:38px; height:38px; display:block; }
   .brand-dot{ width:9px; height:9px; border-radius:50%; background:var(--amber); box-shadow:0 0 0 0 rgba(255,162,60,.6); animation:pulse-dot 2.4s ease-in-out infinite; }
   .nav-links{ display:flex; align-items:center; gap:22px; font-size:13.5px; }
   .nav-links a{ text-decoration:none; color:var(--text-mid); transition:color .15s ease; }
   .nav-links a:hover{ color:var(--text-hi); }
-  .nav-status{ display:flex; align-items:center; gap:7px; color:var(--text-low); font-family:var(--mono); font-size:12px; }
-  .nav-status .brand-dot{ width:7px; height:7px; }
   .gh-link{ display:flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid var(--line); border-radius:8px; color:var(--text-hi) !important; font-size:13px; }
   .gh-link:hover{ border-color:var(--text-low); }
 
@@ -63,6 +72,7 @@
   /* ---------- hero ---------- */
   .hero{ padding:clamp(52px,9vw,104px) 0 clamp(40px,7vw,72px); }
   .hero-grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(32px,5vw,64px); align-items:center; }
+  .hero-grid .hero-call{ justify-self:end; }
   @media (max-width:880px){ .hero-grid{ grid-template-columns:1fr; } .hero-call{ order:-1; margin:0 auto; } }
 
   .eyebrow{ font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:12px; color:var(--amber); margin:0 0 18px; }
@@ -71,6 +81,8 @@
   .sub{ font-size:17px; line-height:1.65; color:var(--text-mid); max-width:46ch; margin:0 0 30px; }
   .sub .cursor{ display:inline-block; width:9px; height:1.05em; background:var(--amber); vertical-align:-2px; animation:blink 1.1s steps(1) infinite; margin-left:2px; }
   @keyframes blink{ 50%{ opacity:0; } }
+  @keyframes call-blink{ 0%,45%{ opacity:1; } 55%,100%{ opacity:.08; } }
+  .call-cursor{ animation:call-blink 1.1s steps(1,end) infinite; }
 
   .cta-row{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:18px; }
   .btn{ font-family:var(--sans); font-weight:600; font-size:14.5px; padding:13px 20px; border-radius:9px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; border:1px solid transparent; cursor:pointer; }
@@ -85,26 +97,31 @@
   .copy-btn:hover{ color:var(--text-hi); border-color:var(--text-low); }
 
   /* ---------- hero call widget (signature element) ---------- */
-  .hero-call{ position:relative; width:280px; height:340px; border-radius:34px; background:linear-gradient(180deg,#1C232D,#141922); border:1px solid var(--line); box-shadow:0 30px 70px -20px rgba(0,0,0,.6); padding:26px 22px; display:flex; flex-direction:column; align-items:center; text-align:center; }
-  .hero-call::before{ content:''; position:absolute; top:14px; left:50%; transform:translateX(-50%); width:52px; height:5px; border-radius:4px; background:#2c3542; }
-  .call-kicker{ font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--text-low); text-transform:uppercase; margin-top:26px; }
-  .call-project{ font-size:26px; font-weight:700; margin:10px 0 2px; }
-  .call-idle{ font-family:var(--mono); font-size:13px; color:var(--text-mid); margin-bottom:6px; }
-  .call-idle b{ color:var(--amber); font-weight:600; }
+  .hero-call{ position:relative; box-sizing:border-box; width:280px; height:340px; border-radius:34px; background:linear-gradient(180deg,#1C232D 0%,#141922 100%); border:1px solid #2A313C; box-shadow:0 30px 70px rgba(0,0,0,.6); padding:14px 22px 22px; display:flex; flex-direction:column; align-items:center; overflow:hidden; }
+  .call-notch{ width:52px; height:5px; border-radius:3px; background:#2C3542; flex:none; }
+  .call-text{ margin-top:16px; display:flex; flex-direction:column; align-items:center; gap:9px; }
+  .call-kicker{ font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#6C7684; margin:0; }
+  .call-project{ font-family:var(--sans); font-weight:700; font-size:26px; letter-spacing:-.01em; color:#F3EFE4; margin:0; }
+  .call-idle{ font-family:var(--mono); font-size:13px; color:#A9B0BC; margin:0; }
+  .call-idle .amber{ color:var(--amber); }
 
-  .sonar{ position:relative; width:104px; height:104px; margin:14px 0; display:flex; align-items:center; justify-content:center; }
-  .sonar .ring{ position:absolute; inset:0; border-radius:50%; border:1.5px solid var(--amber); opacity:0; animation:sonar 2.6s ease-out infinite; }
-  .sonar .ring:nth-child(2){ animation-delay:.65s; }
-  .sonar .ring:nth-child(3){ animation-delay:1.3s; }
-  .sonar .core{ position:relative; z-index:2; width:52px; height:52px; border-radius:50%; background:var(--ink-raised-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:var(--mono); color:var(--amber); font-size:18px; }
-  @keyframes sonar{ 0%{ transform:scale(.5); opacity:.55; } 100%{ transform:scale(1.9); opacity:0; } }
+  .sonar{ flex:1; display:flex; align-items:center; justify-content:center; width:100%; }
+  .sonar-ring-wrap{ position:relative; width:92px; height:92px; display:flex; align-items:center; justify-content:center; }
+  .sonar-ring-wrap .ring{ position:absolute; inset:0; border-radius:50%; border:1px solid var(--amber); opacity:0; animation:sonar 3s ease-out infinite; }
+  .sonar-ring-wrap .ring:nth-child(2){ animation-delay:1s; }
+  .sonar-ring-wrap .ring:nth-child(3){ animation-delay:2s; }
+  .sonar-ring-wrap .core{ position:relative; z-index:1; width:52px; height:52px; border-radius:50%; background:#222A35; border:1px solid #2A313C; display:flex; align-items:center; justify-content:center; }
+  .sonar-ring-wrap .core svg{ width:30px; height:30px; display:block; }
+  @keyframes sonar{ 0%{ transform:scale(.62); opacity:.85; } 70%{ opacity:.10; } 100%{ transform:scale(1.32); opacity:0; } }
 
-  .call-actions{ display:flex; gap:14px; margin-top:auto; padding-top:18px; width:100%; justify-content:center; }
-  .call-pill{ font-family:var(--mono); font-size:11.5px; padding:9px 16px; border-radius:20px; border:1px solid var(--line); color:var(--text-low); }
-  .call-pill.answer{ color:var(--green); border-color:rgba(53,196,107,.35); }
-  .call-pill.decline{ color:var(--red); border-color:rgba(232,91,79,.35); }
+  .call-actions{ display:flex; gap:10px; width:100%; }
+  .call-pill{ flex:1; padding:10px 0; border-radius:999px; background:transparent; font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; border:1px solid; text-align:center; transition:background .15s ease, border-color .15s ease; }
+  .call-pill.decline{ color:#E85B4F; border-color:rgba(232,91,79,.55); }
+  .call-pill.decline:hover{ border-color:#E85B4F; background:rgba(232,91,79,.08); }
+  .call-pill.answer{ color:#35C46B; border-color:rgba(53,196,107,.55); }
+  .call-pill.answer:hover{ border-color:#35C46B; background:rgba(53,196,107,.08); }
 
-  @media (prefers-reduced-motion:reduce){ .sonar .ring, .brand-dot, .cursor{ animation:none !important; } .sonar .ring{ opacity:.25; transform:scale(1.1); } }
+  @media (prefers-reduced-motion:reduce){ .sonar-ring-wrap .ring, .brand-dot, .cursor, .call-cursor{ animation:none !important; } .sonar-ring-wrap .ring{ opacity:.25; transform:scale(1.1); } }
 
   /* ---------- generic section chrome ---------- */
   section{ padding:clamp(56px,8vw,96px) 0; border-top:1px solid var(--line); }
@@ -214,7 +231,7 @@
 <nav class="nav">
   <div class="wrap nav-row">
     <a class="brand" href="#top">
-      <span class="brand-dot" aria-hidden="true"></span>
+      <img class="brand-logo" src="assets/ringback-logo-180.png" alt="Ringback" width="38" height="38">
       ringback
     </a>
     <div class="nav-links">
@@ -222,7 +239,6 @@
       <a href="#controls">Anti-spam</a>
       <a href="#setup">Set up</a>
       <a href="#troubleshooting">Troubleshooting</a>
-      <span class="nav-status" aria-hidden="true"><span class="brand-dot"></span>watching</span>
       <a class="gh-link" href="https://github.com/mikelord007/RingBack" target="_blank" rel="noopener">
         GitHub ↗
       </a>
@@ -248,12 +264,21 @@ claude plugin install ringback@ringback-marketplace</code>
     </div>
 
     <div class="hero-call" aria-hidden="true">
-      <p class="call-kicker">Ringback · incoming</p>
-      <p class="call-project">your-project</p>
-      <p class="call-idle">idle <b>03:02</b></p>
+      <div class="call-notch"></div>
+      <div class="call-text">
+        <p class="call-kicker">Ringback · incoming</p>
+        <p class="call-project">your-project</p>
+        <p class="call-idle">idle <span class="amber">03:02</span><span class="amber call-cursor">_</span></p>
+      </div>
       <div class="sonar">
-        <span class="ring"></span><span class="ring"></span><span class="ring"></span>
-        <span class="core">_</span>
+        <div class="sonar-ring-wrap">
+          <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+          <div class="core">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path clip-rule="evenodd" fill-rule="evenodd" fill="#D97757" d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z"/>
+            </svg>
+          </div>
+        </div>
       </div>
       <div class="call-actions">
         <span class="call-pill decline">decline</span>
