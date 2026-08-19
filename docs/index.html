@@ -59,10 +59,14 @@
   .brand-logo{ width:38px; height:38px; display:block; }
   .brand-dot{ width:9px; height:9px; border-radius:50%; background:var(--amber); box-shadow:0 0 0 0 rgba(255,162,60,.6); animation:pulse-dot 2.4s ease-in-out infinite; }
   .nav-links{ display:flex; align-items:center; gap:22px; font-size:13.5px; }
-  .nav-links a{ text-decoration:none; color:var(--text-mid); transition:color .15s ease; }
+  .nav-links a{ text-decoration:none; color:var(--text-mid); transition:color .15s ease; white-space:nowrap; }
   .nav-links a:hover{ color:var(--text-hi); }
   .gh-link{ display:flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid var(--line); border-radius:8px; color:var(--text-hi) !important; font-size:13px; }
   .gh-link:hover{ border-color:var(--text-low); }
+  @media (max-width:640px){
+    .nav-links{ gap:14px; }
+    .nav-links a:not(.gh-link){ display:none; }
+  }
 
   @keyframes pulse-dot{
     0%,100%{ box-shadow:0 0 0 0 rgba(255,162,60,.55); }
@@ -92,12 +96,12 @@
   .btn-ghost:hover{ border-color:var(--text-low); }
 
   .install-snip{ background:var(--ink-raised); border:1px solid var(--line); border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:14px; max-width:520px; }
-  .install-snip code{ font-size:12.8px; color:var(--text-hi); line-height:1.7; white-space:pre; overflow-x:auto; }
+  .install-snip code{ display:block; min-width:0; font-size:12.8px; color:var(--text-hi); line-height:1.7; white-space:pre; overflow-x:auto; }
   .copy-btn{ flex:0 0 auto; background:var(--ink-raised-2); border:1px solid var(--line); color:var(--text-mid); font-family:var(--mono); font-size:11.5px; padding:7px 10px; border-radius:6px; cursor:pointer; }
   .copy-btn:hover{ color:var(--text-hi); border-color:var(--text-low); }
 
   /* ---------- hero call widget (signature element) ---------- */
-  .hero-call{ position:relative; box-sizing:border-box; width:280px; height:340px; border-radius:34px; background:linear-gradient(180deg,#1C232D 0%,#141922 100%); border:1px solid #2A313C; box-shadow:0 30px 70px rgba(0,0,0,.6); padding:14px 22px 22px; display:flex; flex-direction:column; align-items:center; overflow:hidden; }
+  .hero-call{ position:relative; box-sizing:border-box; width:280px; max-width:100%; height:340px; border-radius:34px; background:linear-gradient(180deg,#1C232D 0%,#141922 100%); border:1px solid #2A313C; box-shadow:0 30px 70px rgba(0,0,0,.6); padding:14px 22px 22px; display:flex; flex-direction:column; align-items:center; overflow:hidden; }
   .call-notch{ width:52px; height:5px; border-radius:3px; background:#2C3542; flex:none; }
   .call-text{ margin-top:16px; display:flex; flex-direction:column; align-items:center; gap:9px; }
   .call-kicker{ font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#6C7684; margin:0; }
@@ -148,6 +152,10 @@
   .ring-body p{ margin:0; color:var(--text-mid); font-size:14px; line-height:1.6; }
   .ring-body code{ background:var(--ink-raised-2); padding:1px 6px; border-radius:4px; font-size:12.5px; color:var(--text-hi); }
   .ring-time{ font-family:var(--mono); font-size:12px; color:var(--text-low); text-align:right; padding-top:2px; }
+  @media (max-width:560px){
+    .ring-row{ grid-template-columns:1fr; gap:6px; padding:18px 20px; }
+    .ring-time{ text-align:left; }
+  }
 
   .cancel-note{ display:flex; gap:14px; align-items:flex-start; margin-top:18px; padding:16px 20px; border:1px dashed var(--line); border-radius:12px; color:var(--text-mid); font-size:14px; line-height:1.65; }
   .cancel-note b{ color:var(--red); font-weight:600; }
@@ -204,9 +212,10 @@
   .log-panel{ background:#0C0F14; border:1px solid var(--line); border-radius:14px; padding:6px; }
   .log-line{ display:grid; grid-template-columns:minmax(220px,320px) 1fr; gap:18px; padding:16px 18px; border-bottom:1px solid #1A1F27; align-items:baseline; }
   .log-line:last-child{ border-bottom:none; }
-  .log-line code{ font-size:12.3px; color:var(--green); }
+  .log-line code{ font-size:12.3px; color:var(--green); overflow-wrap:break-word; }
   .log-line code.err{ color:var(--red); }
   .log-line span{ font-size:13.5px; color:var(--text-mid); line-height:1.6; }
+  @media (max-width:560px){ .log-line{ grid-template-columns:1fr; gap:6px; } }
 
   /* ---------- privacy list ---------- */
   .priv-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px 32px; }
@@ -258,7 +267,8 @@
       </div>
       <div class="install-snip">
         <code id="install-code">claude plugin marketplace add mikelord007/RingBack
-claude plugin install ringback@ringback-marketplace</code>
+claude plugin install ringback@ringback-marketplace
+/plugins</code>
         <button class="copy-btn" data-copy-target="install-code">copy</button>
       </div>
     </div>
@@ -423,7 +433,7 @@ claude plugin install ringback@ringback-marketplace</code>
     <div class="section-head reveal">
       <p class="kicker">Call settings</p>
       <h2 class="h2">Every field, in one place</h2>
-      <p class="lede">Claude Code prompts you for each of these when you enable the plugin — no manual JSON editing.</p>
+      <p class="lede">Open these from Claude Code's <code>/plugins</code> menu after install — no manual JSON editing.</p>
     </div>
     <div class="table-wrap reveal">
       <table>
@@ -465,14 +475,15 @@ claude plugin install ringback@ringback-marketplace</code>
             <pre id="setup-code-1">claude plugin marketplace add mikelord007/RingBack
 claude plugin install ringback@ringback-marketplace</pre>
           </div>
+          <div class="callout">Installing doesn't configure the plugin by itself — you still need the next step.</div>
         </div>
       </div>
 
       <div class="setup-step">
         <div class="setup-num"></div>
         <div>
-          <h4>Answer the setup prompts</h4>
-          <p>Claude Code walks you through every field in <a href="#config">the settings table above</a> — <code>phone_number</code> and <code>provider</code> are the two that matter first. Everything else has a sane default.</p>
+          <h4>Open <code>/plugins</code> and configure it</h4>
+          <p>Run <code>/plugins</code> inside Claude Code, select <b style="color:var(--text-hi);">ringback</b>, and open its configuration screen. That walks you through every field in <a href="#config">the settings table above</a> — <code>phone_number</code> and <code>provider</code> are the two that matter first. Everything else has a sane default.</p>
         </div>
       </div>
 

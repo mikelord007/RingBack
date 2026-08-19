@@ -15,7 +15,7 @@ claude plugin marketplace add mikelord007/RingBack
 claude plugin install ringback@ringback-marketplace
 ```
 
-When you enable the plugin, Claude Code prompts you for each `userConfig` field defined in `.claude-plugin/plugin.json` — there's no manual JSON editing required:
+Installing doesn't configure the plugin by itself — run `/plugins` inside Claude Code, select **ringback**, and open its configuration screen. That walks you through every `userConfig` field defined in `.claude-plugin/plugin.json` — there's no manual JSON editing required:
 
 | Field | Purpose | Default |
 |---|---|---|
